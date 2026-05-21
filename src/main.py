@@ -1,60 +1,24 @@
 """
-VoxBridge — Voice-First AI Assistant
-Main entry point.
-
-This is a minimal skeleton. It runs in text mode by default so that
-you can verify the AI loop before integrating microphone and TTS.
+main.py — نقطهٔ شروع VoxBridge (فعلاً حالت متنی)
+در قدم‌های بعد، ورودی و خروجیِ صدا اضافه می‌شود.
 """
 
-import sys
-from pathlib import Path
-
-# Allow imports from the src/ folder
-sys.path.insert(0, str(Path(__file__).parent))
-
-# Modules to be implemented step by step
-# from speech_to_text import transcribe_audio
-# from text_to_speech import speak
-# from ai_engine import get_response
-
-
-def greet():
-    """Print a startup banner."""
-    print("=" * 50)
-    print("  VoxBridge — Voice-First AI Assistant")
-    print("  v0.1 (development)")
-    print("=" * 50)
-    print("Type 'exit' or press Ctrl+C to quit.\n")
+from ai_engine import get_response   # مغز AI را وارد کن
 
 
 def main():
-    """Main interaction loop (text mode for now)."""
-    greet()
+    print("VoxBridge — Voice-First AI Assistant")
+    print("برای خروج بنویس: exit\n")
 
-    try:
-        while True:
-            # Step 1: receive user input
-            # TODO: replace with transcribe_audio() once microphone module is ready
-            user_input = input("You: ").strip()
+    while True:                          # حلقهٔ اصلی، تا وقتی exit نزدی
+        user_input = input("تو: ")       # ۱) ورودی بگیر
 
-            if not user_input:
-                continue
+        if user_input.lower() == "exit": # ۲) شرط خروج
+            print("خداحافظ! 👋")
+            break
 
-            if user_input.lower() in {"exit", "quit", "bye"}:
-                print("Goodbye!")
-                break
-
-            # Step 2: process through the AI engine
-            # TODO: replace with get_response(user_input) once AI module is ready
-            response = f"[placeholder AI response to]: {user_input}"
-
-            # Step 3: deliver the response
-            # TODO: replace with speak(response) once TTS module is ready
-            print(f"VoxBridge: {response}\n")
-
-    except KeyboardInterrupt:
-        print("\n\nGoodbye!")
-        sys.exit(0)
+        response = get_response(user_input)   # ۳) به مغز بده، جواب بگیر
+        print(f"VoxBridge: {response}\n")     # ۴) جواب را چاپ کن
 
 
 if __name__ == "__main__":
