@@ -1,25 +1,22 @@
-"""
-main.py — نقطهٔ شروع VoxBridge (فعلاً حالت متنی)
-در قدم‌های بعد، ورودی و خروجیِ صدا اضافه می‌شود.
-"""
-
-from ai_engine import get_response   # مغز AI را وارد کن
-
+from ai_engine import get_response
+from text_to_speech import speak
+from speech_to_text import listen
 
 def main():
-    print("VoxBridge — Voice-First AI Assistant")
-    print("برای خروج بنویس: exit\n")
+    print("VoxBridge - Voice-First AI Assistant")
+    print("Drück Enter zum Sprechen, `exit` zum Beenden.\n")
 
-    while True:                          # حلقهٔ اصلی، تا وقتی exit نزدی
-        user_input = input("تو: ")       # ۱) ورودی بگیر
-
-        if user_input.lower() == "exit": # ۲) شرط خروج
-            print("خداحافظ! 👋")
+    while True:
+        command = input("[Enter] zum Sprechen: ")
+        if command.lower() == "exit":
+            print("Bye Baby!")
             break
+        user_input = listen()
+        print(f"Du sagtest: {user_input}")
 
-        response = get_response(user_input)   # ۳) به مغز بده، جواب بگیر
-        print(f"VoxBridge: {response}\n")     # ۴) جواب را چاپ کن
-
+        response = get_response(user_input)
+        print(f"VoxBridge antwortet: {response}\n")
+        speak(response)
 
 if __name__ == "__main__":
     main()
