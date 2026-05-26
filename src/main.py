@@ -1,12 +1,14 @@
 from ai_engine import get_response
 from text_to_speech import speak
 from speech_to_text import listen
+from memory import load_history, save_history  # Neu: حافظه را بارگذاری و ذخیره می‌کند
 
 def main():
     print("VoxBridge - Voice-First AI Assistant")
     print("Drück Enter zum Sprechen, `exit` zum Beenden.\n")
     
-    history = []
+    
+    history = load_history()
 
 
     while True:
@@ -19,6 +21,8 @@ def main():
 
         history.append({"role": "user", "content": user_input})
         response = get_response(history)
+        history.append({"role": "assistant", "content": response})
+        save_history(history)  # Neu: حافظه را بعد از هر پاسخ ذخیره می
         print(f"VoxBridge antwortet: {response}\n")
         speak(response)
 

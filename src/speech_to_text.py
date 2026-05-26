@@ -7,10 +7,11 @@ load_dotenv()
 
 sample_rate = 16000
 whisper_model = os.getenv("WHISPER_MODEL", "base")
+language = os.getenv("LANGUAGE", "de")
 model = whisper.load_model(whisper_model)
 
 def listen(duration: int = 5) -> str:
-    print(" Spreche jetzt...Sag Doch was...")
+    print(" Spreche jetzt.....")
     recording = sd.rec(
         int(duration*sample_rate),
         samplerate=sample_rate,
@@ -20,6 +21,6 @@ def listen(duration: int = 5) -> str:
     sd.wait()
     audio = recording.flatten()
 
-    result = model.transcribe(audio, fp16=False)
+    result = model.transcribe(audio, fp16=False, language=language)
     return result["text"].strip()
 
