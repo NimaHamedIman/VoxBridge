@@ -37,16 +37,12 @@ SYSTEM_PROMPT = (
     
 
 
-def get_response(user_input: str) -> str:
+def get_response(history: list) -> str:
     """متنِ کاربر را می‌گیرد و جوابِ مدل را برمی‌گرداند."""
     try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_input},
-            ],
-        )
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
+        response = client.chat.completions.create(model=MODEL, messages=messages)
+        
         return response.choices[0].message.content.strip()
     except Exception as error:
         return f"[خطا در ارتباط با AI: {error}]"

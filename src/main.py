@@ -5,6 +5,9 @@ from speech_to_text import listen
 def main():
     print("VoxBridge - Voice-First AI Assistant")
     print("Drück Enter zum Sprechen, `exit` zum Beenden.\n")
+    
+    history = []
+
 
     while True:
         command = input("[Enter] zum Sprechen: ")
@@ -14,7 +17,8 @@ def main():
         user_input = listen()
         print(f"Du sagtest: {user_input}")
 
-        response = get_response(user_input)
+        history.append({"role": "user", "content": user_input})
+        response = get_response(history)
         print(f"VoxBridge antwortet: {response}\n")
         speak(response)
 
