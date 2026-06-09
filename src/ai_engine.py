@@ -1,6 +1,6 @@
-"""
-ai_engine.py — مغز هوش مصنوعی VoxBridge
-بسته به AI_BACKEND در .env: یا OpenAI (ابری) یا Ollama (محلی).
+"""AI engine for VoxBridge.
+
+Picks the backend (OpenAI or Ollama) based on AI_BACKEND in .env.
 """
 
 import os
@@ -9,21 +9,18 @@ from openai import OpenAI
 
 load_dotenv()
 
-# کدام مغز را می‌خواهیم؟
 AI_BACKEND = os.getenv("AI_BACKEND", "ollama").lower()
 
-# تنظیمات هر دو مغز را برمی‌داریم
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 
-# بسته به انتخاب، کلاینت و مدل را آماده می‌کنیم
 if AI_BACKEND == "openai":
     client = OpenAI(api_key=OPENAI_API_KEY)
     MODEL = OPENAI_MODEL
-else:  # ollama
-    # Ollama درگاه سازگار با OpenAI دارد، پس از همان کلاینت استفاده می‌کنیم
+else:
+    # Ollama exposes an OpenAI-compatible endpoint, so we reuse the same client.
     client = OpenAI(base_url=f"{OLLAMA_HOST}/v1", api_key="ollama")
     MODEL = OLLAMA_MODEL
 
@@ -34,15 +31,12 @@ SYSTEM_PROMPT = (
     "Always reply in the same language the user speaks — "
     "if they speak German, reply in German; if Persian, reply in Persian."
 )
-    
 
 
 def get_response(history: list) -> str:
-    """متنِ کاربر را می‌گیرد و جوابِ مدل را برمی‌گرداند."""
     try:
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
         response = client.chat.completions.create(model=MODEL, messages=messages)
-        
         return response.choices[0].message.content.strip()
     except Exception as error:
-        return f"[خطا در ارتباط با AI: {error}]"
+        return f"[AI request failed: {error}]"
