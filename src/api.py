@@ -7,10 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
 import sys
+import uuid
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from ai_engine import get_response
+from memory import init_db, save_message, get_history, clear_history
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -27,26 +29,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-conversation_history = []
+init_db()
 
 @app.get("/")
 def health_check():
     return {"status": "VoxBridge API is running", "version": "0.2.0"}
 
 @app.post("/chat")
-async def chat(message: str = Form(...)):
-    global conversation_history
+async def chat(message: str = Form(...), session_id: str = Form(None)):
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    history = get_history(session_id)
 
-    response = get_response(message, conversation_history)
-    conversation_history.append({"role": "user", "content": message})
-    conversation_history.append({"role": "assistant", "content": response})
+    response = get_response(message, history)
+    save_message(session_id, "user", message)
+    save_message(session_id, "assistant", response)
 
-    if len(conversation_history) > 20:
-        conversation_history = conversation_history[-20:]
-    return {"response": response}
+    return {"response": response, "session_id": session_id}
+    
+    
+
+    
 
 @app.post("/reset")
-async def reset():
-    global conversation_history
-    conversation_history = []
-    return {"status": "Conversation history reset."}
+async def reset(session_id: str = Form(...)):
+    clear_history(session_id)
+    return {"status": "Conversation reset.", "session_id": session_id}
