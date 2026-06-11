@@ -1,42 +1,58 @@
-"""AI engine for VoxBridge.
-
-Picks the backend (OpenAI or Ollama) based on AI_BACKEND in .env.
 """
-
+AI Engine — communicates with the chosen LLM backend.
+Supports Groq (free), OpenAI, and Ollama (local).
+"""
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
-
 load_dotenv()
 
-AI_BACKEND = os.getenv("AI_BACKEND", "ollama").lower()
+SYSTEM_PROMPT = """You are VoxBridge, a Voice-frist AI assistant.
+you are empathetic, warm , and human-centered.
+keep responses short and natural _ they will be spoken aloud.
+Detect the user's language and always respond in the same language.
+If the user speaks German, respond in German.
+If the user speaks Persian, respond in Persian.
+If the user speaks English, respond in English."""
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+def get_response(user_message: str, history: list = None) -> str:
+    backend = os.getenv("AI_BACKEND", "groq")
 
-if AI_BACKEND == "openai":
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    MODEL = OPENAI_MODEL
-else:
-    # Ollama exposes an OpenAI-compatible endpoint, so we reuse the same client.
-    client = OpenAI(base_url=f"{OLLAMA_HOST}/v1", api_key="ollama")
-    MODEL = OLLAMA_MODEL
-
-SYSTEM_PROMPT = (
-    "You are VoxBridge, a voice-first AI assistant designed to be accessible, "
-    "empathetic, and human-centered. Keep responses concise and natural, "
-    "suitable for being spoken aloud. Adapt to the user's tone and emotional state. "
-    "Always reply in the same language the user speaks — "
-    "if they speak German, reply in German; if Persian, reply in Persian."
-)
+    if backend == "groq":
+        return get_groq_response(user_message, history)
+    elif backend == "openai":
+        return _get_openai_response(user_message, history)
+    elif backend == "ollama":
+        return _get_ollama_response(user_message, history)
+    else:
+        raise ValueError(f"Unsupported AI_BACKEND: {backend}")
 
 
-def get_response(history: list) -> str:
+def get_groq_response(user_message: str, history: list = None) -> str:
     try:
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
-        response = client.chat.completions.create(model=MODEL, messages=messages)
-        return response.choices[0].message.content.strip()
-    except Exception as error:
-        return f"[AI request failed: {error}]"
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            return "Error: GROQ_API_KEY not found in .env file."
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user_message})
+        response = client.chat.completions.create(
+            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            messages=messages,
+            max_tokens=300,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"Error communicating with Groq: {str(e)}"
+
+
+def _get_openai_response(user_message: str, history: list = None) -> str:
+    raise NotImplementedError("OpenAI backend is not implemented yet.")
+
+
+def _get_ollama_response(user_message: str, history: list = None) -> str:
+    raise NotImplementedError("Ollama backend is not implemented yet.")

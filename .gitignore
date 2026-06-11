@@ -18,6 +18,8 @@ env/
 .env.local
 .env.*.local
 memory.json
+voices.json
+/models
 
 # IDE / Editor
 .vscode/
