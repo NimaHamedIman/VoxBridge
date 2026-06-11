@@ -1,0 +1,15 @@
+[Unit]
+Description=VoxBridge AI Assistant API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/VoxBridge
+Environment=PATH=/opt/VoxBridge/venv/bin
+ExecStart=/opt/VoxBridge/venv/bin/uvicorn src.api:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
