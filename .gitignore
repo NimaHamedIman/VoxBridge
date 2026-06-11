@@ -34,7 +34,7 @@ Thumbs.db
 *.mp3
 *.flac
 logs/
-data/cache/
+data/
 models/
 recordings/
 
