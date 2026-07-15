@@ -12,6 +12,10 @@ pyttsx3>=2.90
 openai>=1.0.0
 # ollama>=0.1.0   # uncomment for local LLM via Ollama
 
+# API Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
 # Configuration
 python-dotenv>=1.0.0
 pydantic>=2.0.0

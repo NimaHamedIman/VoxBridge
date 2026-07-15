@@ -8,6 +8,8 @@ import tempfile
 import os
 import sys
 import uuid
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -31,9 +33,14 @@ app.add_middleware(
 
 init_db()
 
-@app.get("/")
+@app.get("/health")
 def health_check():
     return {"status": "VoxBridge API is running", "version": "0.2.0"}
+
+ 
+@app.get("/")
+def server_ui():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 @app.post("/chat")
 async def chat(message: str = Form(...), session_id: str = Form(None)):
