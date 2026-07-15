@@ -32,19 +32,20 @@ def record_audio(duration_seconds: float = 5.0, sample_rate: int = 16000):
 def transcribe_audio(audio_data=None, language: str = None) -> str:
     if audio_data is None:
         audio_data = record_audio()
+
     model = load_model()
+
     if language is None:
         language = os.getenv("LANGUAGE", "de")
 
-        try:
-            result = model.transcribe(
-                audio_data,
-                language=language,
-                fp16=False
-            
-            )
-            return result.get("text", "").strip()
-        except Exception as e:
-            print(f"Error during transcription: {e}")
-            return ""
+    try:
+        result = model.transcribe(
+            audio_data,
+            language=language,
+            fp16=False
+        )
+        return result.get("text", "").strip()
+    except Exception as e:
+        print(f"Error during transcription: {e}")
+        return ""
         
