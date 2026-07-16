@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoxBridge</title>
     <style>
-        /* ---------- پایه ---------- */
+       
         * {
             margin: 0;
             padding: 0;
@@ -14,14 +14,18 @@
 
         body {
             font-family: system-ui, sans-serif;
-            background: #0f1420;
-            color: #e8eaf0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+    color: #e8eaf0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    background-image: url("/static/Bild.jpeg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+            
         }
 
-        /* ---------- هدر ---------- */
         header {
             padding: 16px 24px;
             background: #161d2e;
@@ -37,7 +41,7 @@
             color: #8b93a7;
         }
 
-        /* ---------- ناحیهٔ پیام‌ها ---------- */
+        
         #chat-box {
             flex: 1;
             overflow-y: auto;
@@ -61,10 +65,10 @@
 
         .assistant {
             align-self: flex-start;
-            background: #232c42;
+            background: rgba(35, 44, 66, 0.85);
         }
 
-        /* ---------- نوار ورودی ---------- */
+        
         #input-bar {
             display: flex;
             gap: 8px;
@@ -96,6 +100,18 @@
         #send-button:hover {
             background: #245ac9;
         }
+        #mic-button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #2a3550;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+#mic-button.recording {
+    background: #e0245e;
+}
     </style>
 </head>
 <body>
@@ -111,20 +127,21 @@
         <input type="text" id="message-input"
                placeholder="Schreib eine Nachricht..." autocomplete="off">
         <button id="send-button">Senden</button>
+        <button id="mic-button" title="Sprachnachricht">🎙️</button>
     </div>
 
 
 <script>
-        // ---------- ۱. گرفتن دستگیرهٔ عناصر ----------
+        
         const chatBox = document.getElementById("chat-box");
         const input   = document.getElementById("message-input");
         const button  = document.getElementById("send-button");
 
-        // ---------- ۲. آدرس سرور و شناسهٔ جلسه ----------
+        
         const API_URL = "https://voice.nimaserver.xyz/chat";
         let sessionId = localStorage.getItem("voxbridge_session");
 
-        // ---------- ۳. ساخت حباب پیام ----------
+        
         function addMessage(text, sender) {
             const bubble = document.createElement("div");
             bubble.className = "message " + sender;
@@ -133,7 +150,7 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // ---------- ۴. ارسال پیام به سرور ----------
+        
         async function sendMessage() {
             const text = input.value.trim();
             if (!text) return;
@@ -173,10 +190,79 @@
             }
         }
 
-        // ---------- ۵. اتصال رویدادها ----------
+        
         button.addEventListener("click", sendMessage);
         input.addEventListener("keydown", function (event) {
             if (event.key === "Enter") sendMessage();
+
+            // ---------- ضبط صدا ----------
+const micButton = document.getElementById("mic-button");
+let mediaRecorder = null;
+let audioChunks = [];
+
+micButton.addEventListener("click", async function () {
+    // حالت ۱: هنوز ضبط نمی‌کنیم → شروع کن
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", function (event) {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", sendAudio);
+
+            mediaRecorder.start();
+            micButton.classList.add("recording");
+            micButton.textContent = "⏹️";
+        } catch (err) {
+            addMessage("⚠️ Mikrofonzugriff verweigert: " + err.message, "assistant");
+        }
+    }
+    // حالت ۲: در حال ضبطیم → تمومش کن
+    else {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        micButton.classList.remove("recording");
+        micButton.textContent = "🎙️";
+    }
+});
+
+async function sendAudio() {
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+    addMessage("🎙️ ...", "user");
+    micButton.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
+        if (sessionId) formData.append("session_id", sessionId);
+
+        const response = await fetch("/voice", { method: "POST", body: formData });
+        if (!response.ok) throw new Error("Server-Fehler: " + response.status);
+
+        const data = await response.json();
+
+        if (data.error) {
+            addMessage("⚠️ " + data.error, "assistant");
+            return;
+        }
+
+        sessionId = data.session_id;
+        localStorage.setItem("voxbridge_session", sessionId);
+
+        chatBox.lastChild.textContent = data.transcription;
+        addMessage(data.response, "assistant");
+
+    } catch (error) {
+        addMessage("⚠️ Fehler: " + error.message, "assistant");
+    } finally {
+        micButton.disabled = false;
+    }
+}
         });
     </script>
 </body>
