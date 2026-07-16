@@ -13,10 +13,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
-from fastapi.staticfiles import StaticFiles
-
-from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 from ai_engine import get_response
 from memory import init_db, save_message, get_history, clear_history
@@ -35,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 init_db()
 
