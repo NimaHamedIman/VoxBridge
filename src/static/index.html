@@ -194,16 +194,17 @@
         button.addEventListener("click", sendMessage);
         input.addEventListener("keydown", function (event) {
             if (event.key === "Enter") sendMessage();
+        });
 
-            // ---------- ضبط صدا ----------
-const micButton = document.getElementById("mic-button");
-let mediaRecorder = null;
-let audioChunks = [];
+        // ---------- ضبط صدا ----------
+         const micButton = document.getElementById("mic-button");
+         let mediaRecorder = null;
+         let audioChunks = [];
 
-micButton.addEventListener("click", async function () {
-    // حالت ۱: هنوز ضبط نمی‌کنیم → شروع کن
-    if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        try {
+         micButton.addEventListener("click", async function () {
+               // حالت ۱: هنوز ضبط نمی‌کنیم → شروع کن
+         if (!mediaRecorder || mediaRecorder.state === "inactive") {
+         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
@@ -217,20 +218,20 @@ micButton.addEventListener("click", async function () {
             mediaRecorder.start();
             micButton.classList.add("recording");
             micButton.textContent = "⏹️";
-        } catch (err) {
+         } catch (err) {
             addMessage("⚠️ Mikrofonzugriff verweigert: " + err.message, "assistant");
+         }
         }
-    }
-    // حالت ۲: در حال ضبطیم → تمومش کن
-    else {
+           // حالت ۲: در حال ضبطیم → تمومش کن
+          else {
         mediaRecorder.stop();
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
         micButton.classList.remove("recording");
         micButton.textContent = "🎙️";
-    }
-});
+              }
+             });
 
-async function sendAudio() {
+         async function sendAudio() {
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
     addMessage("🎙️ ...", "user");
@@ -263,7 +264,6 @@ async function sendAudio() {
         micButton.disabled = false;
     }
 }
-        });
     </script>
 </body>
 </html>
