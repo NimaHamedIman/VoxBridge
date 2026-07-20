@@ -57,7 +57,7 @@ def server_ui():
 
 @app.post("/chat")
 @limiter.limit("20/minute")
-async def chat(message: str = Form(...), session_id: str = Form(None)):
+async def chat(request: Request, message: str = Form(...), session_id: str = Form(None)):
     if not session_id:
         session_id = str(uuid.uuid4())
     history = get_history(session_id)
@@ -90,7 +90,7 @@ def get_whisper():
 
 @app.post("/voice")
 @limiter.limit("10/minute")
-async def voice(audio: UploadFile = File(...), session_id: str = Form(None)):
+async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None)):
     if not session_id:
         session_id = str(uuid.uuid4())
 
