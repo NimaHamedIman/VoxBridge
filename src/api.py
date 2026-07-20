@@ -33,8 +33,8 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=["https://voice.nimaserver.xyz"],
+    allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
 
@@ -90,7 +90,7 @@ def get_whisper():
 
 @app.post("/voice")
 @limiter.limit("10/minute")
-async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None)):
+async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("fa")):
     if not session_id:
         session_id = str(uuid.uuid4())
 
@@ -108,7 +108,7 @@ async def voice(request: Request, audio: UploadFile = File(...), session_id: str
     try:
         # voice → text
         model = get_whisper()
-        result = model.transcribe(tmp_path, fp16=False)
+        result = model.transcribe(tmp_path, fp16=False, language=language)
         user_text = result.get("text", "").strip()
 
         if not user_text:
