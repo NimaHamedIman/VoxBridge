@@ -79,15 +79,6 @@ def get_whisper():
  
  
 
-_whisper_model = None
-
-def get_whisper():
-    global _whisper_model
-    if _whisper_model is None:
-        _whisper_model = whisper.load_model(os.getenv("WHISPER_MODEL", "base"))
-    return _whisper_model
-
-
 @app.post("/voice")
 @limiter.limit("10/minute")
 async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("fa")):
