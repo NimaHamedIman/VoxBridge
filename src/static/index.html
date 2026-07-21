@@ -112,6 +112,14 @@
 #mic-button.recording {
     background: #e0245e;
 }
+#langSelect {
+    padding: 12px 10px;
+    border: 1px solid #2a3550;
+    border-radius: 10px;
+    background: #0f1420;
+    color: #e8eaf0;
+    font-size: 14px;
+}
     </style>
 </head>
 <body>
@@ -127,6 +135,11 @@
         <input type="text" id="message-input"
                placeholder="Schreib eine Nachricht..." autocomplete="off">
         <button id="send-button">Senden</button>
+        <select id="langSelect" title="Sprache">
+            <option value="de">DE</option>
+            <option value="en">EN</option>
+            <option value="fa" selected>FA</option>
+        </select>
         <button id="mic-button" title="Sprachnachricht">🎙️</button>
     </div>
 
