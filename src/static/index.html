@@ -240,6 +240,7 @@
     try {
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.webm");
+        formData.append("language", document.getElementById("langSelect").value);
         if (sessionId) formData.append("session_id", sessionId);
 
         const response = await fetch("/voice", { method: "POST", body: formData });
