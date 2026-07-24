@@ -1,30 +1,23 @@
-# Core audio
+# --- Web API (production) ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9        # required by FastAPI for Form/File uploads
+slowapi>=0.1.9                 # rate limiting
+
+# --- AI backend ---
+groq>=0.9.0
+
+# --- Speech-to-Text ---
+openai-whisper>=20231117       # needs ffmpeg installed on the system
+
+# --- Configuration ---
+python-dotenv>=1.0.0
+
+# --- Local CLI mode only (src/main.py) ---
 sounddevice>=0.4.6
 numpy>=1.24.0
+pyttsx3>=2.90                  # offline TTS, not used by the web API
 
-# Speech-to-Text
-openai-whisper>=20231117
-
-# Text-to-Speech
-pyttsx3>=2.90
-
-# AI backend (use at least one)
-openai>=1.0.0
-# ollama>=0.1.0   # uncomment for local LLM via Ollama
-
-# API Framework
-fastapi>=0.100.0
-uvicorn>=0.23.0
-
-# Configuration
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-
-# Development
+# --- Development ---
 pytest>=7.0.0
 black>=23.0.0
-fastapi
-uvicorn
-python-multipart
-groq
-slowapi
