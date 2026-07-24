@@ -4,10 +4,16 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+# Dedicated non-root user (least privilege)
+User=voxbridge
+Group=voxbridge
 WorkingDirectory=/opt/VoxBridge
-Environment=PATH=/opt/VoxBridge/venv/bin
-ExecStart=/opt/VoxBridge/venv/bin/uvicorn src.api:app --host 0.0.0.0 --port 8000
+# Whisper/HuggingFace cache must live somewhere the service user can write.
+Environment=XDG_CACHE_HOME=/opt/VoxBridge/.cache
+# PATH must include the system directories, otherwise Whisper
+# cannot find ffmpeg (systemd does not inherit the login PATH).
+Environment=PATH=/opt/VoxBridge/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/VoxBridge/venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=3
 
