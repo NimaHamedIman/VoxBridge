@@ -1,216 +1,85 @@
-# 🎙️ VoxBridge — AI Voice Assistant
+# 🎙️ VoxBridge
 
-<div align="center">
+**A voice-first AI assistant, built as a self-hosted web API — live at [voice.nimaserver.xyz](https://voice.nimaserver.xyz).**
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=flat-square&logo=fastapi&logoColor=white)
-![Groq](https://img.shields.io/badge/Groq_API-LLaMA_3.3-F55036?style=flat-square)
-![Whisper](https://img.shields.io/badge/OpenAI-Whisper-412991?style=flat-square&logo=openai&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-Ubuntu_24.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Live_Production-brightgreen?style=flat-square)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+![Whisper](https://img.shields.io/badge/OpenAI-Whisper-412991?style=flat-square)
+![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Work_in_Progress-orange?style=flat-square)
 
-**A modular, production-grade AI voice assistant — live on Hetzner Cloud 24/7.**
+VoxBridge takes a voice recording (or a text message), transcribes it locally with Whisper, sends it to an LLM, and returns the answer — with persistent conversation memory per session. It runs 24/7 as a `systemd` service on a Hetzner Cloud VPS behind Nginx and Cloudflare.
 
-[Live Demo](#live-demo) · [Architecture](#architecture) · [Quick Start](#quick-start) · [Deployment](#deployment)
-
-</div>
+> **Honest scope:** This is a learning project I build alone, alongside my retraining as a Fachinformatiker (application development). It is a work in progress, not a finished product. The parts described below actually work; everything else lives in the [roadmap](#roadmap).
 
 ---
 
-## 📌 What is VoxBridge?
+## How it works
 
-VoxBridge is a **voice-first AI assistant** that combines speech recognition, large language model processing, and text-to-speech output into a clean, modular pipeline — deployed as a production service on a Linux cloud server.
+```
+Browser (mic / text input)
+        │  HTTPS
+        ▼
+Cloudflare → Nginx (reverse proxy)
+        │
+        ▼
+FastAPI  (src/api.py)
+  ├─ Whisper (local STT)  →  transcribes uploaded audio
+  ├─ Groq API (LLaMA 3.3 70B)  →  generates the reply
+  └─ SQLite  →  per-session conversation history
+        │
+        ▼
+JSON response: { transcription, response, session_id }
+```
 
-> Built from scratch as a personal project to deepen practical skills in Python, REST APIs, cloud deployment, and AI integration.
+**What the server does *not* do:** speak. The API is text-out only. Offline text-to-speech (pyttsx3) exists, but only in the local CLI mode (`src/main.py`), because a headless cloud server has no audio device. Browser-side speech output is on the roadmap.
+
+The assistant detects the user's language and answers in the same language — German, English and Persian are the ones I actively test.
 
 ---
 
-## ✨ Key Features
+## API
 
-| Feature | Technology |
-|--------|-----------|
-| 🎤 Speech-to-Text | OpenAI Whisper (local inference) |
-| 🧠 AI Processing | Groq API · LLaMA 3.3 70B |
-| 🔊 Text-to-Speech | pyttsx3 (offline TTS) |
-| 🌐 REST API | FastAPI |
-| 💾 Conversation Memory | SQLite (persistent across restarts) |
-| 🔒 HTTPS & Security | Nginx · Let's Encrypt · Cloudflare CDN |
-| 🚀 Cloud Deployment | Hetzner Cloud · Ubuntu 24.04 · systemd |
+| Endpoint | Method | Rate limit | Description |
+|---|---|---|---|
+| `/` | GET | — | Minimal web UI (chat + mic recording) |
+| `/health` | GET | — | Health check |
+| `/chat` | POST | 20/min | `message`, optional `session_id` → AI reply |
+| `/voice` | POST | 10/min | `audio` file (max 10 MB), optional `session_id`, `language` → transcription + AI reply |
+| `/reset` | POST | — | Clears the conversation history for a `session_id` |
 
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                  CLIENT                         │
-│         (Browser / Mobile / CLI)                │
-└────────────────────┬────────────────────────────┘
-                     │ HTTPS
-                     ▼
-┌─────────────────────────────────────────────────┐
-│   Cloudflare CDN  →  Nginx Reverse Proxy        │
-│              (SSL/TLS Termination)              │
-└────────────────────┬────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────┐
-│             FastAPI Application                 │
-│                                                 │
-│  ┌─────────────┐  ┌───────────┐  ┌──────────┐  │
-│  │   Whisper   │→ │ Groq API  │→ │ pyttsx3  │  │
-│  │ (STT Layer) │  │(LLM Layer)│  │(TTS Layer)│  │
-│  └─────────────┘  └───────────┘  └──────────┘  │
-│                         │                       │
-│                   ┌─────▼──────┐                │
-│                   │   SQLite   │                │
-│                   │  (Memory)  │                │
-│                   └────────────┘                │
-└─────────────────────────────────────────────────┘
-           systemd service · Ubuntu 24.04
-              Hetzner Cloud VPS
-```
-
-**Design principles:**
-- **Separation of concerns** — each layer (STT, LLM, TTS) is an independent module
-- **Stateful conversations** — SQLite stores session history, surviving server restarts
-- **Production-hardened** — runs as a `systemd` service with automatic restart on failure
-- **Zero secrets in code** — all credentials via `.env` / `.gitignore`
+Sessions are identified by a UUID. If no `session_id` is sent, the server creates one and returns it; the web UI stores it in `localStorage`, so conversations survive page reloads — and server restarts, thanks to SQLite.
 
 ---
 
-## 🚀 Quick Start
+## Security measures
 
-### Prerequisites
-
-- Python 3.11+
-- A [Groq API key](https://console.groq.com) (free tier available)
-- `ffmpeg` installed (required by Whisper)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/nimaMira/VoxBridge.git
-cd VoxBridge
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
-```
-
-### Configuration
-
-```env
-# .env
-GROQ_API_KEY=your_groq_api_key_here
-WHISPER_MODEL=base          # tiny / base / small / medium
-DATABASE_URL=voxbridge.db
-HOST=0.0.0.0
-PORT=8000
-```
-
-### Run Locally
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Open `http://localhost:8000` in your browser — the API docs are at `/docs`.
+- **Rate limiting** per client IP via `slowapi` (stricter on `/voice`, since Whisper inference is expensive)
+- **Upload size limit** of 10 MB on audio files
+- **CORS** locked to the production origin
+- **Secrets** only via `.env` (permissions `600`), never in code or git
+- **HTTPS via Cloudflare** — TLS terminates at the Cloudflare edge, which proxies traffic to Nginx on the origin server. Upgrading to end-to-end TLS (Cloudflare *Full (strict)* with an origin certificate) is planned for the next maintenance window.
+- **FastAPI bound to `127.0.0.1`** — only Nginx can reach it; the app process is never exposed publicly
+- **Dedicated non-root service user** (`voxbridge`) runs the systemd service (least privilege)
+- **Temporary audio files** are deleted after transcription (`finally` block)
 
 ---
 
-## 🌍 Deployment
-
-### Hetzner Cloud (Ubuntu 24.04) — Production Setup
-
-**1. Nginx Reverse Proxy**
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name your-domain.xyz;
-
-    ssl_certificate     /etc/letsencrypt/live/your-domain.xyz/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.xyz/privkey.pem;
-
-    location / {
-        proxy_pass         http://127.0.0.1:8000;
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-    }
-}
-```
-
-**2. systemd Service**
-
-```ini
-# /etc/systemd/system/voxbridge.service
-[Unit]
-Description=VoxBridge AI Voice Assistant
-After=network.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/VoxBridge
-ExecStart=/home/ubuntu/VoxBridge/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
-Restart=always
-RestartSec=5
-EnvironmentFile=/home/ubuntu/VoxBridge/.env
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-# Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable voxbridge
-sudo systemctl start voxbridge
-
-# Check status
-sudo systemctl status voxbridge
-```
-
-**3. SSL Certificate (Let's Encrypt)**
-
-```bash
-sudo certbot --nginx -d your-domain.xyz
-```
-
----
-
-## 🔒 Security
-
-- All API keys stored in `.env` — never committed to version control
-- Nginx handles SSL termination — FastAPI only exposed on `127.0.0.1`
-- Cloudflare CDN as additional security and DDoS protection layer
-- UFW firewall: only ports 22 (SSH), 80, 443 open
-
----
-
-## 📁 Project Structure
+## Project structure
 
 ```
 VoxBridge/
-├── main.py              # FastAPI app entry point
-├── stt/
-│   └── whisper_handler.py   # Speech-to-Text module
-├── llm/
-│   └── groq_handler.py      # Groq API / LLM module
-├── tts/
-│   └── pyttsx3_handler.py   # Text-to-Speech module
-├── memory/
-│   └── database.py          # SQLite conversation memory
+├── src/
+│   ├── api.py              # FastAPI app — the production entry point
+│   ├── ai_engine.py        # LLM backend (Groq; OpenAI/Ollama stubs)
+│   ├── memory.py           # SQLite conversation storage
+│   ├── speech_to_text.py   # Whisper wrapper (local CLI mode)
+│   ├── text_to_speech.py   # pyttsx3 TTS (local CLI mode only)
+│   ├── main.py             # Local CLI voice loop (mic → LLM → speaker)
+│   └── static/             # Web UI (HTML/CSS/JS)
+├── deploy/
+│   ├── nginx.conf.txt      # Reverse proxy config
+│   └── voxbridge.service.txt  # systemd unit
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -218,43 +87,79 @@ VoxBridge/
 
 ---
 
-## 🛠️ Tech Stack
+## Quick start (local)
 
-**Backend:** Python 3.11 · FastAPI · Uvicorn  
-**AI/ML:** OpenAI Whisper · Groq API (LLaMA 3.3 70B) · pyttsx3  
-**Database:** SQLite  
-**Infrastructure:** Hetzner Cloud · Ubuntu 24.04 · Nginx · systemd  
-**Security:** Let's Encrypt · Cloudflare · UFW  
-**Tools:** Git · VS Code · Python-dotenv  
+Prerequisites: Python 3.11+, `ffmpeg` (required by Whisper), a free [Groq API key](https://console.groq.com).
+
+```bash
+git clone https://github.com/NimaHamedIman/VoxBridge.git
+cd VoxBridge
+
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+
+cp .env.example .env            # then add your GROQ_API_KEY
+```
+
+Run the web API:
+
+```bash
+uvicorn src.api:app --reload --port 8000
+```
+
+Open `http://localhost:8000` for the UI, `http://localhost:8000/docs` for the interactive API docs.
+
+Alternatively, run the local CLI voice loop (mic in, spoken answer out):
+
+```bash
+python src/main.py
+```
+
+### Configuration (`.env`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `GROQ_API_KEY` | — | **Required.** Groq API key |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model name |
+| `AI_BACKEND` | `groq` | LLM backend (`openai`/`ollama` are stubs for now) |
+| `WHISPER_MODEL` | `base` | Whisper size: `tiny` / `base` / `small` / `medium` |
+| `LANGUAGE` | `de` | Default STT/TTS language for the CLI mode |
 
 ---
 
-## 🗺️ Roadmap
+## Deployment (production)
 
-- [ ] Web frontend (React) for browser-based voice interaction
-- [ ] Multi-language support (German / English / Persian)
+Runs on Hetzner Cloud (Ubuntu 24.04) as a `systemd` service under a **dedicated non-root user**, behind Nginx with Cloudflare proxying and terminating TLS in front. The actual configs are in [`deploy/`](deploy/).
+
+```bash
+sudo cp deploy/voxbridge.service.txt /etc/systemd/system/voxbridge.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now voxbridge
+```
+
+---
+
+## Roadmap
+
+- [ ] Browser-side text-to-speech (Web Speech API) so the web UI can talk back
+- [ ] End-to-end TLS: origin certificate + Cloudflare *Full (strict)*
 - [ ] Streaming responses for lower perceived latency
-- [ ] Docker containerization for easier deployment
-- [ ] User authentication and session management
+- [ ] Speaker recognition (experimental branch: `feature/speaker-recognition`)
+- [ ] Automated tests (pytest) for the API endpoints
+- [ ] Docker setup
+- [ ] User authentication
 
 ---
 
-## 👤 About the Author
+## About
 
-**Nima HamedIman**  
-IT Retraining — Fachinformatiker Anwendungsentwicklung (IHK) · CBW Hamburg · Expected 2027  
-Certifications: Oracle OCFA Java · PCAP Python · AWS Cloud Practitioner · PSM I Scrum
+**Nima HamedIman** — retraining as Fachinformatiker Anwendungsentwicklung (IHK) at CBW Hamburg, expected 2027.
+Certifications: Oracle OCFA Java · PCAP Python · AWS Cloud Practitioner · PSM I.
 
-🔗 [LinkedIn](https://www.linkedin.com/in/nima-hamediman-827a733b4/) · [GitHub](https://github.com/NimaHamedIman)
+[LinkedIn](https://www.linkedin.com/in/nima-hamediman-827a733b4/) · [GitHub](https://github.com/NimaHamedIman)
 
----
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-<sub>Built with ❤️ and a lot of Linux terminal sessions</sub>
-</div>
+MIT — see [LICENSE](LICENSE).
