@@ -29,7 +29,7 @@ load_dotenv()
 app = FastAPI(
     title="VoxBridge API",
     description="Voice-First AI Assistant API",
-    version="0.2.0"
+    version="0.5.0"
 )
 app.add_middleware(
     CORSMiddleware,
