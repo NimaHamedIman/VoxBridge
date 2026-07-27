@@ -2,9 +2,24 @@ server {
     listen 80;
     server_name voice.nimaserver.xyz;
 
+    # Nginx defaults to 1M and rejects larger uploads with 413 before the
+    # request ever reaches FastAPI, so the 10MB check in api.py is unreachable.
+    client_max_body_size 10M;
+
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+
+        # Whisper inference on CPU can exceed the 60s default and produce a
+        # 504 while Python is still working.
+        proxy_read_timeout 120s;
+
+        # Without it, uvicorn sees every client as 127.0.0.1, so slowapi puts
+        # all users into a single shared rate-limit bucket.
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # Lets the app know whether the original request was HTTP or HTTPS.
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

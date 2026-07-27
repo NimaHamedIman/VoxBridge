@@ -47,7 +47,9 @@ def get_groq_response(user_message: str, history: list = None) -> str:
         return response.choices[0].message.content
 
     except Exception as e:
-        return f"Error communicating with Groq: {str(e)}"
+        print(f"Groq request failed: {e}")
+        return "Entschuldigung, ich kann gerade nicht antworten. Bitte versuche es noch einmal."
+        
 
 
 def _get_openai_response(user_message: str, history: list = None) -> str:

@@ -81,7 +81,7 @@ def get_whisper():
 
 @app.post("/voice")
 @limiter.limit("10/minute")
-async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("fa")):
+async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("de")):
     if not session_id:
         session_id = str(uuid.uuid4())
 
@@ -132,6 +132,7 @@ async def voice(request: Request, audio: UploadFile = File(...), session_id: str
     
 
 @app.post("/reset")
-async def reset(session_id: str = Form(...)):
+@limiter.limit("10/minute")
+async def reset(request: Request, session_id: str = Form(...)):
     clear_history(session_id)
     return {"status": "Conversation reset.", "session_id": session_id}
