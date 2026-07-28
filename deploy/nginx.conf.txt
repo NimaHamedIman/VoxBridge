@@ -6,6 +6,29 @@ server {
     # request ever reaches FastAPI, so the 10MB check in api.py is unreachable.
     client_max_body_size 10M;
 
+    # Stops the browser from guessing content types and executing an
+    # uploaded/served file as something it is not (MIME-sniffing attacks).
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Stops the site from being embedded in an <iframe> on another origin,
+    # which is what clickjacking relies on.
+    add_header X-Frame-Options "DENY" always;
+
+    # Keeps the full URL (which may contain session-identifying paths) from
+    # leaking to other origins via the Referer header on cross-site navigation.
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Blocks access to sensitive browser APIs by default so an injected or
+    # embedded script cannot silently turn on the camera or location; the
+    # microphone stays available to this origin because the voice feature
+    # depends on it.
+    add_header Permissions-Policy "geolocation=(), camera=(), microphone=(self)" always;
+
+    # Restricts which origins scripts, styles, media and connections can be
+    # loaded from, which is the main defence against XSS and data
+    # exfiltration if an injection ever slips through.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
