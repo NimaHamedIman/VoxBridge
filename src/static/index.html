@@ -17,9 +17,21 @@
 </head>
 <body>
 
+<div id="welcome" class="welcome" hidden>
+    <div class="welcome-card">
+        <h2>Bevor wir anfangen</h2>
+        <label for="your-name">Wie soll ich dich nennen?</label>
+        <input type="text" id="your-name" maxlength="40" autocomplete="off">
+        <label for="bot-name">Und wie soll ich heißen?</label>
+        <input type="text" id="bot-name" maxlength="40" autocomplete="off"
+               placeholder="VoxBridge">
+        <button id="welcome-done" class="send-wide">Los geht's</button>
+    </div>
+</div>
+
 <header class="topbar">
     <span class="mark">VoxBridge</span>
-    <span class="lang">DE</span>
+    <span id="lang-badge" class="lang" title="Namen ändern" role="button" tabindex="0">DE</span>
 </header>
 
 <main class="stage">

@@ -32,6 +32,98 @@ body {
 }
 
 
+/* ---------- welcome overlay ---------- */
+
+.welcome {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+
+    display: grid;
+    place-items: center;
+    padding: 24px;
+
+    background: rgba(11, 7, 16, 0.92);
+    backdrop-filter: blur(6px);
+}
+
+.welcome[hidden] {
+    display: none;
+}
+
+.welcome-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    width: 100%;
+    max-width: 380px;
+    padding: 28px;
+
+    background: var(--haze);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+}
+
+.welcome-card h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.welcome-card label {
+    font-size: 11px;
+    letter-spacing: var(--label);
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+}
+
+.welcome-card input {
+    width: 100%;
+    padding: 10px 16px;
+
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--void);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+
+    transition: border-color 160ms ease;
+}
+
+.welcome-card input:focus {
+    outline: none;
+    border-color: var(--pulse);
+}
+
+.welcome-card input::placeholder {
+    color: var(--muted);
+}
+
+.send-wide {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+
+    border: none;
+    border-radius: 999px;
+    background: var(--pulse);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: opacity 160ms ease;
+}
+
+.send-wide:hover {
+    opacity: 0.85;
+}
+
+
 /* ---------- top bar ---------- */
 
 .topbar {
@@ -55,6 +147,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 999px;
     padding: 4px 10px;
+    cursor: pointer;
 }
 
 
@@ -207,6 +300,7 @@ body {
 
 
 button:focus-visible,
+.lang:focus-visible,
 .compose:focus-within {
     outline: 2px solid var(--pulse);
     outline-offset: 3px;

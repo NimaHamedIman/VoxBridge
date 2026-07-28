@@ -57,12 +57,13 @@ def server_ui():
 
 @app.post("/chat")
 @limiter.limit("20/minute")
-async def chat(request: Request, message: str = Form(...), session_id: str = Form(None)):
+async def chat(request: Request, message: str = Form(...), session_id: str = Form(None),
+                user_name: str = Form(None), assistant_name: str = Form(None)):
     if not session_id:
         session_id = str(uuid.uuid4())
     history = get_history(session_id)
 
-    response = get_response(message, history)
+    response = get_response(message, history, user_name=user_name, assistant_name=assistant_name)
     save_message(session_id, "user", message)
     save_message(session_id, "assistant", response)
 
@@ -81,7 +82,8 @@ def get_whisper():
 
 @app.post("/voice")
 @limiter.limit("10/minute")
-async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("de")):
+async def voice(request: Request, audio: UploadFile = File(...), session_id: str = Form(None), language: str = Form("de"),
+                 user_name: str = Form(None), assistant_name: str = Form(None)):
     if not session_id:
         session_id = str(uuid.uuid4())
 
@@ -107,7 +109,7 @@ async def voice(request: Request, audio: UploadFile = File(...), session_id: str
 
         # AI response
         history = get_history(session_id)
-        response = get_response(user_text, history)
+        response = get_response(user_text, history, user_name=user_name, assistant_name=assistant_name)
         save_message(session_id, "user", user_text)
         save_message(session_id, "assistant", response)
 

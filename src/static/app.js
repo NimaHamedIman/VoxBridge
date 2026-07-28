@@ -16,6 +16,12 @@ const statusLine = document.getElementById("status");
 const transcript = document.getElementById("transcript");
 const stages     = document.querySelectorAll(".pipeline li");
 
+const welcomeOverlay = document.getElementById("welcome");
+const nameInput       = document.getElementById("your-name");
+const botNameInput    = document.getElementById("bot-name");
+const welcomeDone     = document.getElementById("welcome-done");
+const langBadge       = document.getElementById("lang-badge");
+
 const LABELS = {
     idle:      "Bereit",
     listening: "Ich höre zu",
@@ -24,6 +30,9 @@ const LABELS = {
 };
 
 let sessionId = localStorage.getItem("voxbridge_session");
+
+let userName      = localStorage.getItem("voxbridge_user");
+let assistantName = localStorage.getItem("voxbridge_assistant");
 
 let recorder = null;
 let chunks = [];
@@ -35,6 +44,7 @@ let germanVoice = null;
 let speakTimer = null;
 let speakLevel = 0;
 let speakGuard = null;
+let gotBoundary = false;
 
 
 /* ---------- shared state ---------- */
@@ -182,6 +192,12 @@ async function sendClip() {
         if (sessionId) {
             form.append("session_id", sessionId);
         }
+        if (userName) {
+            form.append("user_name", userName);
+        }
+        if (assistantName) {
+            form.append("assistant_name", assistantName);
+        }
 
         // Relative path on purpose: the same file has to work on
         // localhost during development and on the live domain.
@@ -227,6 +243,12 @@ async function sendText() {
         if (sessionId) {
             form.append("session_id", sessionId);
         }
+        if (userName) {
+            form.append("user_name", userName);
+        }
+        if (assistantName) {
+            form.append("assistant_name", assistantName);
+        }
 
         const res = await fetch("/chat", { method: "POST", body: form });
         if (!res.ok) {
@@ -251,8 +273,29 @@ async function sendText() {
 
 /* ---------- speech output ---------- */
 
+// Web Speech API quality depends entirely on what the operating system
+// provides, so we pick the best available voice rather than trusting
+// whatever the browser defaults to.
+const VOICE_PREFERENCES = [
+    "Google Deutsch",   // most natural, but generated remotely and only exists in Chrome
+    "Katja",            // best locally installed Windows voice, works offline
+    "Helena",           // macOS and iOS
+    "Anna",             // older macOS
+    "Hedda"             // older Windows
+];
+
 function pickGermanVoice() {
     const voices = window.speechSynthesis.getVoices();
+
+    for (const name of VOICE_PREFERENCES) {
+        const match = voices.find(function (v) {
+            return v.name.toLowerCase().indexOf(name.toLowerCase()) !== -1
+                && v.lang.indexOf("de") === 0;
+        });
+        if (match) {
+            return match;
+        }
+    }
 
     return voices.find(function (v) { return v.lang === "de-DE"; })
         || voices.find(function (v) { return v.lang.indexOf("de") === 0; })
@@ -268,11 +311,16 @@ function speak(text) {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "de-DE";
-    utterance.rate = 1.0;
+    // Tuned by ear: slightly slower and slightly higher reads as warmer,
+    // while the default sounds clipped.
+    utterance.rate = 0.95;
+    utterance.pitch = 1.05;
 
     if (germanVoice) {
         utterance.voice = germanVoice;
     }
+
+    gotBoundary = false;
 
     function finish() {
         clearTimeout(speakGuard);
@@ -290,13 +338,24 @@ function speak(text) {
         // orb is driven by word timing instead: each boundary is a beat,
         // and the level decays in between.
         speakLevel = 0.5;
+        const speakStart = Date.now();
         speakTimer = setInterval(function () {
-            speakLevel *= 0.8;
-            Orb.setLevel(Math.max(0.1, speakLevel));
+            if (gotBoundary) {
+                speakLevel *= 0.8;
+                Orb.setLevel(Math.max(0.1, speakLevel));
+            } else {
+                // Remote voices (e.g. Google's) usually never fire
+                // "boundary", so we get no timing signal at all. A
+                // synthetic pulse is the honest fallback here — it does
+                // not pretend to follow the words.
+                const elapsed = Date.now() - speakStart;
+                Orb.setLevel(Math.max(0.1, 0.3 + Math.sin(elapsed / 190) * 0.18));
+            }
         }, 60);
     });
 
     utterance.addEventListener("boundary", function () {
+        gotBoundary = true;
         speakLevel = 0.55 + Math.random() * 0.3;
     });
 
@@ -313,6 +372,28 @@ function speak(text) {
             finish();
         }
     }, 2500);
+}
+
+
+/* ---------- personalisation ---------- */
+
+function saveNames() {
+    userName = nameInput.value.trim();
+    assistantName = botNameInput.value.trim() || "VoxBridge";
+
+    localStorage.setItem("voxbridge_user", userName);
+    localStorage.setItem("voxbridge_assistant", assistantName);
+
+    welcomeOverlay.hidden = true;
+    say(`Hallo ${userName}. Ich bin ${assistantName}.`);
+}
+
+
+function showWelcome() {
+    nameInput.value = "";
+    botNameInput.value = "";
+    welcomeOverlay.hidden = false;
+    nameInput.focus();
 }
 
 
@@ -344,11 +425,45 @@ document.addEventListener("keydown", function (event) {
     }
 });
 
+welcomeDone.addEventListener("click", saveNames);
+
+nameInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        saveNames();
+    }
+});
+
+botNameInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        saveNames();
+    }
+});
+
+langBadge.addEventListener("click", function () {
+    localStorage.removeItem("voxbridge_user");
+    localStorage.removeItem("voxbridge_assistant");
+    userName = null;
+    assistantName = null;
+    showWelcome();
+});
+
+langBadge.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.code === "Space") {
+        event.preventDefault();
+        langBadge.click();
+    }
+});
+
 // Chrome loads the voice list asynchronously - the first call usually
 // returns an empty array, so we ask again once it is ready.
 germanVoice = pickGermanVoice();
 window.speechSynthesis.addEventListener("voiceschanged", function () {
     germanVoice = pickGermanVoice();
 });
+
+if (!userName) {
+    welcomeOverlay.hidden = false;
+    nameInput.focus();
+}
 
 setPhase("idle");
