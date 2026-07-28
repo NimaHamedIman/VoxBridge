@@ -2,7 +2,7 @@
 
 **A voice-first AI assistant, built as a self-hosted web API — live at [voice.nimaserver.xyz](https://voice.nimaserver.xyz).**
 
-![VoxBridge](src/static/og.png)
+![VoxBridge](src/static/demo.gif)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
