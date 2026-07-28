@@ -7,7 +7,7 @@ import re
 from dotenv import load_dotenv
 load_dotenv()
 
-SYSTEM_PROMPT = """You are VoxBridge, a voice assistant. Everything you
+SYSTEM_PROMPT = """You are a voice assistant. Everything you
 write is read out loud by a speech synthesiser, so write the way people
 speak, not the way people write.
 
@@ -35,13 +35,16 @@ def clean_name(raw):
     return name or None
 
 
+# The identity must be stated here, not hardcoded into SYSTEM_PROMPT: a
+# later instruction does not reliably override an earlier identity
+# statement, so a fixed name in the base prompt wins over any custom
+# assistant_name appended afterwards.
 def build_system_prompt(user_name=None, assistant_name=None) -> str:
-    prompt = SYSTEM_PROMPT
-    assistant_name = clean_name(assistant_name)
+    assistant_name = clean_name(assistant_name) or "VoxBridge"
     user_name = clean_name(user_name)
 
-    if assistant_name:
-        prompt += f"\n\nYour name is {assistant_name}. Answer to it naturally."
+    prompt = SYSTEM_PROMPT
+    prompt += f"\n\nYour name is {assistant_name}. If someone asks who you are, that is the name you give."
     if user_name:
         prompt += f"\n\nThe person you are talking to is called {user_name}. Use their name occasionally, not in every reply."
 
