@@ -466,4 +466,7 @@ if (!userName) {
     nameInput.focus();
 }
 
+console.log("%cVoxBridge", "color: #c026d3; font-size: 16px; font-weight: bold;");
+console.log("%cBuilt by Nima HamedIman — https://github.com/NimaHamedIman/VoxBridge", "color: #8a7fa3;");
+
 setPhase("idle");

@@ -48,7 +48,7 @@ init_db()
 
 @app.get("/health")
 def health_check():
-    return {"status": "VoxBridge API is running", "version": "0.5.0"}
+    return {"status": "VoxBridge API is running", "version": "0.5.0", "author": "Nima HamedIman"}
 
  
 @app.get("/")

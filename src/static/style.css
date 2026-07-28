@@ -301,6 +301,7 @@ body {
 
 button:focus-visible,
 .lang:focus-visible,
+.credit:focus-visible,
 .compose:focus-within {
     outline: 2px solid var(--pulse);
     outline-offset: 3px;
@@ -364,4 +365,22 @@ button:disabled,
 @media (prefers-reduced-motion: reduce) {
     .mic, .send, .compose { transition: none; }
     .mic:hover { transform: none; }
+}
+
+
+/* ---------- credit ---------- */
+
+.credit {
+    font-size: 10px;
+    letter-spacing: var(--label);
+    color: var(--muted);
+    text-decoration: none;
+    opacity: 0.55;
+    transition: opacity 160ms ease, color 160ms ease;
+}
+
+.credit:hover,
+.credit:focus-visible {
+    opacity: 1;
+    color: var(--pulse);
 }
