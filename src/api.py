@@ -21,9 +21,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from ai_engine import get_response
-from memory import init_db, save_message, get_history, clear_history
+from memory import init_db, save_message, get_history, clear_history, get_facts
+from tools import TOOL_SCHEMAS, dispatch
 from dotenv import load_dotenv
 load_dotenv()
+
+
+# Zentrale Stelle fuer die Umrechnung von session_id auf einen User-Key:
+# wenn spaeter Login oder ein Wiederherstellungscode eingefuehrt wird, muss
+# nur diese Funktion angepasst werden, nichts anderes.
+def resolve_user_key(session_id):
+    return session_id
 
 
 app = FastAPI(
@@ -64,7 +72,17 @@ async def chat(request: Request, message: str = Form(...), session_id: str = For
         session_id = str(uuid.uuid4())
     history = get_history(session_id)
 
-    response = get_response(message, history, user_name=user_name, assistant_name=assistant_name)
+    user_key = resolve_user_key(session_id)
+    facts = get_facts(user_key)
+
+    # user_key wird hier serverseitig gebunden und taucht bewusst nicht in
+    # TOOL_SCHEMAS auf, damit das Modell nicht die Daten eines anderen Users
+    # ansprechen kann.
+    def run_tool(name, arguments):
+        return dispatch(name, arguments, user_key)
+
+    response = get_response(message, history, user_name=user_name, assistant_name=assistant_name,
+                             facts=facts, tool_schemas=TOOL_SCHEMAS, run_tool=run_tool)
     save_message(session_id, "user", message)
     save_message(session_id, "assistant", response)
 
