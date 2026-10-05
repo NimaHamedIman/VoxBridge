@@ -2,10 +2,13 @@
 AI Engine — communicates with the chosen LLM backend.
 Supports Groq (free), OpenAI, and Ollama (local).
 """
+import json
 import os
 import re
 from dotenv import load_dotenv
 load_dotenv()
+
+MAX_TOOL_ROUNDS = 3
 
 SYSTEM_PROMPT = """You are a voice assistant. Everything you
 write is read out loud by a speech synthesiser, so write the way people
@@ -64,11 +67,11 @@ def build_system_prompt(user_name=None, assistant_name=None, facts: list = None)
     return prompt
 
 
-def get_response(user_message: str, history: list = None, user_name=None, assistant_name=None, facts: list = None) -> str:
+def get_response(user_message: str, history: list = None, user_name=None, assistant_name=None, facts: list = None, tool_schemas=None, run_tool=None) -> str:
     backend = os.getenv("AI_BACKEND", "groq")
 
     if backend == "groq":
-        return get_groq_response(user_message, history, user_name=user_name, assistant_name=assistant_name, facts=facts)
+        return get_groq_response(user_message, history, user_name=user_name, assistant_name=assistant_name, facts=facts, tool_schemas=tool_schemas, run_tool=run_tool)
     elif backend == "openai":
         return _get_openai_response(user_message, history)
     elif backend == "ollama":
@@ -77,7 +80,7 @@ def get_response(user_message: str, history: list = None, user_name=None, assist
         raise ValueError(f"Unsupported AI_BACKEND: {backend}")
 
 
-def get_groq_response(user_message: str, history: list = None, user_name=None, assistant_name=None, facts: list = None) -> str:
+def get_groq_response(user_message: str, history: list = None, user_name=None, assistant_name=None, facts: list = None, tool_schemas=None, run_tool=None) -> str:
     try:
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -88,8 +91,53 @@ def get_groq_response(user_message: str, history: list = None, user_name=None, a
         if history:
             messages.extend(history)
         messages.append({"role": "user", "content": user_message})
+
+        model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
+        if not tool_schemas or not run_tool:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=300,
+                temperature=0.7,
+            )
+            return response.choices[0].message.content
+
+        for _ in range(MAX_TOOL_ROUNDS):
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=300,
+                temperature=0.7,
+                tools=tool_schemas,
+            )
+            message = response.choices[0].message
+
+            if not message.tool_calls:
+                return message.content
+
+            # The tool results below reference this call by tool_call_id;
+            # without the assistant message that issued the calls also in
+            # messages, the model has no record of having made them.
+            messages.append(message)
+
+            for tool_call in message.tool_calls:
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    arguments = {}
+                result = run_tool(tool_call.function.name, arguments)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result,
+                })
+
+        # The round cap exists so a confused model looping on tool calls
+        # cannot tie up the process indefinitely on a server that also
+        # runs other services. Dropping "tools" here forces a plain answer.
         response = client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            model=model,
             messages=messages,
             max_tokens=300,
             temperature=0.7,
@@ -99,7 +147,7 @@ def get_groq_response(user_message: str, history: list = None, user_name=None, a
     except Exception as e:
         print(f"Groq request failed: {e}")
         return "Entschuldigung, ich kann gerade nicht antworten. Bitte versuche es noch einmal."
-        
+
 
 
 def _get_openai_response(user_message: str, history: list = None) -> str:
