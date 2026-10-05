@@ -29,7 +29,7 @@ load_dotenv()
 app = FastAPI(
     title="VoxBridge API",
     description="Voice-First AI Assistant API",
-    version="0.5.0"
+    version="0.6.1"
 )
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +48,8 @@ init_db()
 
 @app.get("/health")
 def health_check():
-    return {"status": "VoxBridge API is running", "version": "0.5.0", "author": "Nima HamedIman"}
+    # Liest die Version aus app.version, damit es nur eine Quelle der Wahrheit gibt
+    return {"status": "VoxBridge API is running", "version": app.version, "author": "Nima HamedIman"}
 
  
 @app.get("/")
